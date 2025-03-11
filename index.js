@@ -9,7 +9,10 @@ const csrf = require("csurf");
 
 
 app.use(cookieParser()); // Cookie を扱うためのミドルウェア
-const csrfProtection = csrf({ cookie: true }); // CSRF ミドルウェア（トークンを Cookie に保存）
+app.use(express.urlencoded({ extended: true })); // フォームデータを解析するため
+app.use(express.json()); // JSONデータを解析するため
+
+const csrfProtection = csrf({ cookie: true }); // CSRF保護のミドルウェアを設定（クッキーベース）
 
 // public フォルダを静的ファイルとして提供
 app.use(express.static(path.join(__dirname, 'public')));
@@ -41,21 +44,22 @@ app.get("/csrf-token", csrfProtection, (req, res) => {
     res.json({ csrfToken: req.csrfToken() });
 });
 
-// CSRF トークンを検証するエンドポイントを追加
-app.post("/submit", (req, res) => {
-    const message = req.body.message; // フォームのデータを取得
-    console.log("Received message:", message);
-    
-    // ここでDBに保存する処理を入れる（仮）
-    res.json({ success: true, message: "Message received!" });
-});
-
-// ルートアクセスで index.html を表示（CSRFトークン付き）
+// ルートへのGETリクエストで、CSRFトークンを生成し、index.htmlを返す
 app.get('/', csrfProtection, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'ndex.html'));
 });
 
-// Socket.IO の設定（チャットの例）
+// CSRF トークン付きの POST エンドポイント
+app.post("/submit", csrfProtection, (req, res) => {
+    // CSRFトークンの検証が自動的に行われる
+    const data = req.body; // フォームのデータを取得
+    console.log('Received data:', data);
+    
+    // ここでデータベース操作などの処理を行う
+    res.json({ success: true, message: 'データを受け取りました！', data });
+});
+
+// Socket.IO の設定
 io.on('connection', (socket) => {
     socket.on('chat message', (msg) => {
       io.emit('chat message', msg);

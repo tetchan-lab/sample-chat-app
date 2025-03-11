@@ -245,10 +245,11 @@
 	</head>
 	<body>
 		<ul id="messages"></ul>
-		<form id="chatForm">
+		<form id="chatForm" action="/submit" method="POST">
 			<input id="chat-name" value="Sample:">
 			<div id="wrapper" class="wrapper">
-				<textarea id="input" placeholder="チャット..." autocomplete="off"></textarea>
+				<textarea id="input" name="_message" placeholder="チャット..." autocomplete="off"></textarea>
+                <input type="hidden" name="_csrf" id="csrf-token">
 				<button type="button" id="emoji-button" class="emoji-button" data-title="エモートを追加"><img src="icon/face-smile-regular.svg" alt="😀"></button>
 				<div id="emoji-picker" class="emoji-picker"></div>
 			</div>
@@ -258,6 +259,18 @@
 		</form>
 		<script src="/socket.io/socket.io.js"></script>
 		<script>
+            // ページ読み込み時に CSRF トークンを取得
+            (async function(){
+                try {
+                    const res = await fetch('/csrf-token');
+                    const data = await res.json();
+                    document.getElementById('csrf-token').value = data.csrfToken;
+                    console.log("CSRF Token retrieved:", data.csrfToken);
+                } catch (error) {
+                    console.error("Failed to retrieve CSRF Token:", error);
+                }
+            })();
+
 			let socket = io();
 			const messages = document.getElementById('messages');
 			const chatName = document.getElementById('chat-name');
@@ -473,11 +486,32 @@
 			});
 			
 			// フォーム送信時の処理
-			form.addEventListener("submit", (event) => {
+			form.addEventListener("submit", async (event) => {
 				event.preventDefault(); // ページ遷移を防ぐ
 				const trimmedValue = input.value.trim(); // 前後の空白と改行を除去
 				
 				if (trimmedValue && !(trimmedValue === "" && input.value.includes("\n"))) {
+
+                    try {
+                        const formData = new FormData(form);
+                        const message = formData.get("_message");
+                        const csrfToken = formData.get("_csrf");
+
+                        // サーバーへPOSTリクエストを送信（CSRFトークンをヘッダーに含める）
+                        const response = await fetch('/submit', {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "CSRF-Token": csrfToken  // ヘッダーにトークンを設定
+                            },
+                            body: JSON.stringify({ message })
+                        });
+
+                        const result = await response.json();
+                        console.log("Server response:", result);
+                    } catch (error) {
+                        console.error("Error during form submission:", error);
+                    }
 
 					console.log("送信されたメッセージ:", trimmedValue); // 送信内容を表示（デバッグ用）
 

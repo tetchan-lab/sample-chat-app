@@ -46,7 +46,7 @@ app.get("/csrf-token", csrfProtection, (req, res) => {
 
 // ルートへのGETリクエストで、CSRFトークンを生成し、index.htmlを返す
 app.get('/', csrfProtection, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'ndex.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // CSRF トークン付きの POST エンドポイント

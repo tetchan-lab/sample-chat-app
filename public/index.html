@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0 minimum-scale=1.0">
+		<title>Sample Socket.io Chat</title>
+		<style>
+			body {
+				margin: 0;
+				padding-bottom: 3rem;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			}
+			#chatForm {
+				display: flex;
+				border-top: 1px solid #e5e5e5;
+				padding-top: 10px;
+				padding-bottom: 6px;
+				position: fixed;
+				bottom: 0px;
+				left: 0;
+				right: 0;
+			}
+			#chat-name {
+				height: 39px;
+				padding-left: 11px;
+				box-sizing: border-box;
+				border: none;
+				/*border-radius: 2rem;*/
+				background: #efefef;
+				margin: 0px -11px 0px 14px;
+				display: none;
+			}
+			.wrapper {
+				position: relative;
+				width: 100%;
+			}
+			#input {
+				width: 100%;
+				height: 39px; /* 高さを調整  必要に応じて変更 */
+				font-size: 14px;
+				box-sizing: border-box;
+				resize: none; /* 手動リサイズ禁止 */
+				line-height: 18px; /* 文字の高さ幅を調整  上下間隔になるのに注意 */
+				padding-top: 11px;
+				padding-left: 18px;
+				padding-right: 18px;
+				overflow-y: hidden; /* スクロールバーを非表示 */
+				border: none;
+				background: #f2f2f2;
+				font-family: sans-serif;
+				border-radius: 2rem;
+				margin-left: 23px;
+			}
+			#input:focus {
+				outline: none;
+			}
+			.emoji-picker {
+				display: none;
+				position: absolute;
+				background: white;
+				border: 1px solid #ddd;
+				border-radius: 8px;
+				padding: 10px;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+				max-width: 200px;
+				flex-wrap: wrap;
+				gap: 0px;
+				right: -80px;
+				bottom: 54px;
+			}
+			.emoji {
+				font-size: 20px;
+				cursor: pointer;
+				padding: 5px;
+				border-radius: 5px;
+				transition: background 0.2s;
+			}
+			.emoji:hover {
+				background: #f0f0f0;
+			}
+			button.emoji-button {
+				position: absolute;
+				right: -14px;
+				top: 9px;
+				border: none;
+				background: none;
+				/*display: none;*/
+			}
+			/* start カスタムツールチップ（tooltip） */
+			button.emoji-button::after {
+				content: attr(data-title);
+				position: absolute;
+				top: -50px; /* ボタンの上に表示 */
+				left: 50%;
+				transform: translateX(-50%);
+				background: #707070;
+				color: #e9e9e9;
+				padding: 10px 10px;
+				border-radius: 5px;
+				font-size: 12px;
+				white-space: nowrap;
+				opacity: 0;
+				visibility: hidden;
+				transition: opacity 0.2s ease-in-out;
+				pointer-events: none;
+			}
+			/* 吹き出しの下やじるし三角形を作る */
+			button.emoji-button::before {
+				content: "";
+				position: absolute;
+				top: -12px; /* 吹き出しの三角形の位置 */
+				left: 50%;
+				transform: translateX(-50%);
+				border-width: 5px;
+				border-style: solid;
+				border-color: #707070 transparent transparent transparent;
+				opacity: 0;
+				visibility: hidden;
+				transition: opacity 0.2s ease-in-out;
+			}
+			.emoji-button:hover::after,
+			.emoji-button:hover::before {
+				opacity: 1;
+				visibility: visible;
+			}
+			/* end カスタムツールチップ（tooltip） */
+			button.emoji-button > img {
+				width: auto;
+				height: 20px;
+				filter: invert(51%) sepia(3%) saturate(10%) hue-rotate(15deg) brightness(101%) contrast(92%);
+			}
+            button.send {
+				border: none;
+				background: #ffffff;
+				margin: 0px 18px 0px 30px;
+            }
+			button.send > img {
+				/*transform: rotateZ(28deg);*/
+				width: auto;
+				height: 22px;
+				filter: invert(1%) sepia(5%) saturate(145%) hue-rotate(314deg) brightness(93%) contrast(91%);
+				filter: invert(13%) sepia(9%) saturate(19%) hue-rotate(337deg) brightness(93%) contrast(80%);
+				filter: invert(22%) sepia(16%) saturate(4%) hue-rotate(315deg) brightness(102%) contrast(81%);
+			}
+			#messages {
+				list-style-type: none;
+				margin: 0 0 23px 0;
+				padding: 0; 
+				position: fixed;
+				width: 100%;
+				top: 0px;
+				bottom: 46px;
+				overflow: auto;
+			}
+			#messages > li:nth-child(odd) {
+				background: #f8f8f8;
+			}
+			#messages > li {
+				display: flex;
+				position: relative;
+				padding: 0.5rem 1rem;
+				animation: fadeIn 0.3s ease 0s 1 normal;
+			}
+			/* アニメーション */
+			@keyframes fadeIn {
+				0% {
+					opacity: 0;
+					transform: translateY(10px);
+				}
+				100% {
+					opacity: 1;
+				}
+			}
+			li > span > img {
+				width: auto;
+				height: 24px;
+				border-radius: 100%;
+				/*margin: -20px 7px -8px 7px;*/
+			}
+			#messages > li time {
+				/*position: absolute;
+				right: 12px;
+				bottom: 12px;*/
+				font-size: 0.7rem;
+				color: #707070;
+				padding-right: 10px;
+				/* display: none; */
+			}
+			.msg-icon {
+				height: 21px;
+				padding: 0 12px 0px 6px;
+				/* display: none; */
+			}
+			.msg-name {
+				font-size: 12px;
+				font-weight: bold;
+				color: #797979;
+				color: #146512;
+				color: #027523;
+				padding-right: 10px;
+			}
+			.msg-text {
+				font-size: 13px;
+			}
+			@media screen and (max-width: 430px) {
+				#input {
+					font-size: 16px;
+				}
+				/*button.emoji-button {
+					display: none;
+				}*/
+				/*#messages {
+					width: 100%;
+					position: fixed;
+					bottom: 44px;
+				}*/
+				li > span > img {
+					height: 24px;
+				}
+				#messages > li time {
+                    padding-right: 0px;
+					/*display: none;*/
+				}
+				.msg-icon {
+					height: 21px;
+					padding: 0px 6px 0px 0px;
+					margin-top: -1px;
+				}
+				.msg-name {
+					font-size: 12px;
+					padding-right: 0px;
+				}
+				.msg-text {
+					font-size: 13px;
+				}
+			}
+		</style>
+		<style id="emoji-tooltip">
+			.emoji-button:hover::after,
+			.emoji-button:hover::before {
+				opacity: 1;
+				visibility: visible;
+			}
+		</style>
+	</head>
+	<body>
+		<ul id="messages"></ul>
+		<form id="chatForm">
+			<input id="chat-name" value="Sample:">
+			<div id="wrapper" class="wrapper">
+				<textarea id="input" placeholder="チャット..." autocomplete="off"></textarea>
+				<button type="button" id="emoji-button" class="emoji-button" data-title="エモートを追加"><img src="icon/face-smile-regular.svg" alt="😀"></button>
+				<div id="emoji-picker" class="emoji-picker"></div>
+			</div>
+			<button type="submit" class="send">
+				<img src="icon/paper-plane-regular.svg" class="send-img" alt="Send">
+			</button>
+		</form>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+			let socket = io();
+			const messages = document.getElementById('messages');
+			const chatName = document.getElementById('chat-name');
+			const input = document.getElementById("input");
+			const form = document.getElementById("chatForm");
+			const emojiButton = document.getElementById("emoji-button");
+			const emojiPicker = document.getElementById("emoji-picker");
+			const tooltipStyle = document.getElementById("emoji-tooltip");
+			const sendImg = document.querySelector(".send-img");
+			let isComposing = false; // IME変換中かどうかを判定するフラグ
+			
+			// IME変換開始時にフラグを立てる
+			input.addEventListener("compositionstart", () => {
+				isComposing = true;
+			});
+			
+			// IME変換確定時にフラグを解除
+			input.addEventListener("compositionend", () => {
+				isComposing = false;
+			});
+			
+			// 表示する絵文字一覧
+			const emojis = ["😌", "😭", "😀", "😁", "😂", "🤣", "😃", "😄", "😅", "😆", "☺️", "😇",
+							"😍", "😡", "😓", "😴", "😨", "🤔", "🥹", "😔", "😉", "😊", "😋", "😎"];
+			
+			// 絵文字ピッカーを生成
+			function createEmojiPicker() {
+				emojiPicker.innerHTML = ""; // emojiPicker の中身をリセットする（新しく作り直すため）
+				emojis.forEach(emoji => {
+					const span = document.createElement("span"); // <span> 要素を作る
+					span.textContent = emoji; // 絵文字を <span> の中に入れる
+					span.classList.add("emoji"); // CSS でスタイルを適用するために emoji クラスを追加
+					span.addEventListener("click", () => insertEmoji(emoji)); // クリックしたら insertEmoji() を実行
+					emojiPicker.appendChild(span); // emojiPicker（絵文字一覧の div）の中に span を追加する
+				});
+			}
+			
+			// 絵文字を textarea に挿入
+			function insertEmoji(emoji) {
+				const cursorPos = input.selectionStart;  // カーソル位置を取得
+				const textBefore = input.value.substring(0, cursorPos); // カーソル前の文字を取得
+				const textAfter = input.value.substring(cursorPos); //カーソル後の文字を取得
+				input.value = textBefore + emoji + textAfter; // 新しい文字列を作成（カーソル位置に絵文字を挿入）
+				input.focus(); // フォーカスを戻して引き続き入力できるようにする
+			}
+			
+			// ボタンを押したら絵文字一覧を表示・非表示
+			emojiButton.addEventListener("click", (event) => {
+				createEmojiPicker(); // 関数を実行 絵文字リストを作成
+				// if 文を短くかいた 三項演算子（?:）を使った条件分岐
+				emojiPicker.style.display = emojiPicker.style.display === "flex" ? "none" : "flex";
+				// ツールチップを非表示にする
+				tooltipStyle.textContent = `
+					.emoji-button:hover::after,
+					.emoji-button:hover::before {
+						opacity: 0;
+						visibility: hidden;
+					}
+				`;
+			});
+			
+			// クリックで絵文字ピッカーを閉じる（ボタンとピッカー以外）＆ tooltip のスタイルを戻す
+			document.addEventListener("click", (event) => {
+				if (!emojiButton.contains(event.target) && !emojiPicker.contains(event.target)) {
+					emojiPicker.style.display = "none";
+					tooltipStyle.textContent = `
+						.emoji-button:hover::after,
+						.emoji-button:hover::before {
+							opacity: 1;
+							visibility: visible;
+						}
+					`;
+				}
+			});
+			
+			// テキストの幅を計算する関数
+			function getTextWidth(text, font) {
+				const canvas = document.createElement("canvas"); // canvas 要素を作成
+				const context = canvas.getContext("2d"); // 2Dコンテキスト（getContext("2d")を取得
+				context.font = font; // textarea のフォントを適用
+				return context.measureText(text).width; // リターンで「現在のフォント設定で text を描いた時の横幅」を返す
+			}
+			
+			// スマホ判定関数
+			function isMobile() {
+				return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+			}
+			
+			/*if (isMobile()) {
+				emojiButton.style.display = "none"; // スマホならボタンを非表示
+			}*/
+			
+			// 自動リサイズ関数
+			function adjustTextareaHeight() {
+				input.style.height = "39px"; // 一度リセットする
+				
+				const newLine = input.value.includes("\n"); // 改行の確認。
+				const twoHeight = 49; // 2行分の高さ
+				let newHeight = input.scrollHeight; // 現在の高さ
+				
+				console.log("現在の高さ:", newHeight); // 現在の高さを確認（デバッグ用）
+				//console.log("２行分の高さ:", twoHeight); // ２行分の高さを確認（デバッグ用）
+				
+				// textarea のスタイルを取得してフォント情報を取得
+				const textareaStyle = window.getComputedStyle(input);
+				const font = `${textareaStyle.fontSize} ${textareaStyle.fontFamily}`;
+				
+				// 現在の入力テキストの幅を計算
+				const TextWidth = getTextWidth(input.value, font); // 現在の入力テキストをgetTextWidth() に渡す
+				console.log("Text Width:", TextWidth); // デバッグ用
+				
+				// textarea の padding を取得
+				const paddingLeft = parseFloat(textareaStyle.paddingLeft);
+				const paddingRight = parseFloat(textareaStyle.paddingRight);
+				const textPadding = paddingLeft + paddingRight; // 合計のpadding
+				const margin = 55;  // 余力の値（ピクセル）
+				
+				// テキスト幅にpadding分と余力分の数字を加える
+				const adjustedTextWidth = TextWidth + textPadding + margin;
+				console.log("Adjusted Text Width:", adjustedTextWidth); // デバッグ用
+				
+				// emojiボタンの左側の位置を取得
+				const emojiButtonLeft = emojiButton.getBoundingClientRect().left;
+				console.log("emojiButton Left: ", emojiButtonLeft); // デバッグ用
+				
+				// PCかスマホか判定して、個別の条件で処理をさせる。スマホならemojiボタンの位置を考慮しない 
+				/*if (isMobile()) {
+					// もし折り返しが発生し2行分になったら
+					if (newHeight >= twoHeight) {
+						input.style.height = "89px"; // 4行分の高さに変更
+						messages.style.marginBottom = "70px"; // ul を４行分の高さ上げる
+						messages.scrollTo(0, messages.scrollHeight); // messages内のスクロールを一番下へ
+					} else {
+						// 元の値に戻す
+						messages.style.marginBottom = "23px";
+					}
+				} else {*/
+					 // PCならemojiボタンの位置を考慮する
+					 //もし折り返しが発生し2行分になる、あるいは文字がボタン左端の距離まできたら4行分の高さを確保
+					if (newHeight >= twoHeight || adjustedTextWidth >= emojiButtonLeft) {
+						input.style.height = "89px"; // 4行分の高さに変更
+						messages.style.marginBottom = "70px"; // ul を４行分の高さ上げる
+						messages.scrollTo(0, messages.scrollHeight); // messagesのスクロールを一番下へ
+						// 絵文字ボタンの位置を右下に調整する
+						emojiButton.style.top = "88%";
+						emojiButton.style.transform = "translateY(-88%)";
+					} else {
+						// 元の値に戻す
+						messages.style.marginBottom = "23px";
+						emojiButton.style.top = "9px";
+						emojiButton.style.transform = "none";
+					}
+				//}
+			
+				input.style.height = Math.min(input.scrollHeight, 205) + "px"; // 最大205pxまで拡大
+				
+				// PCかスマホか判定して、個別の条件でborder-radiusの値を変更する。スマホならemojiボタンの位置を考慮しない 
+				/*if (isMobile()) {
+					// もし改行がある or 現在の高さが２行分(49px)をこえたら、自動でborder-radiusの値を変更する。
+					if (newLine || newHeight >= twoHeight) {
+						input.style.borderRadius = "0.8rem"; // 改行あり → 0.8rem
+					} else {
+						input.style.borderRadius = "2rem"; // 改行なし → 2rem
+					}
+				} else {*/
+					// PCならemojiボタンの位置を考慮する
+					// 改行がある or 現在の高さが２行分(49px)になる or 文字がボタン左端の距離まできていたら値を変更する。
+					if (newLine || newHeight >= twoHeight || adjustedTextWidth >= emojiButtonLeft) {
+						input.style.borderRadius = "0.8rem"; // 改行あり → 0.8rem
+					} else {
+						input.style.borderRadius = "2rem"; // 改行なし → 2rem
+					}
+				}
+			//}
+			
+			// 入力時に高さを調整
+			input.addEventListener("input", adjustTextareaHeight);
+			
+			// シフト+エンターで改行、通常のエンターで送信
+			input.addEventListener("keydown", (event) => {
+				if (event.key === "Enter") {
+					if (isComposing) {
+						return; // IME変換中なら送信しない
+					}
+					
+					if (event.shiftKey) {
+					// シフト+エンターなら改行
+						event.preventDefault();
+						const cursorPos = input.selectionStart; // カーソル位置を取得
+						const textBefore = input.value.substring(0, cursorPos); // カーソル前の文字を取得
+						const textAfter = input.value.substring(cursorPos); //カーソル後の文字を取得
+						input.value = textBefore + "\n" + textAfter; // 新しい文字列を作成
+						input.selectionStart = input.selectionEnd = cursorPos + 1; // カーソル位置を調整
+						adjustTextareaHeight();
+					} else {
+						// エンターのみならフォームを送信
+						event.preventDefault();
+						form.requestSubmit(); // フォームを送信
+					}
+				}
+			});
+			
+			// 入力時に送信ボタン画像の色を変える
+			input.addEventListener("input", (event) => {
+				// 空かつ改行の場合は除外
+				if (input.value.trim() && !(input.value.trim() === "" && input.value.includes("\n"))) {
+					sendImg.style.filter = 
+					"invert(23%) sepia(67%) saturate(3090%) hue-rotate(201deg) brightness(93%) contrast(101%)";
+				} else {
+					sendImg.style.filter = 
+					"invert(22%) sepia(16%) saturate(4%) hue-rotate(315deg) brightness(102%) contrast(81%)";
+				}
+			});
+			
+			// フォーム送信時の処理
+			form.addEventListener("submit", (event) => {
+				event.preventDefault(); // ページ遷移を防ぐ
+				const trimmedValue = input.value.trim(); // 前後の空白と改行を除去
+				
+				if (trimmedValue && !(trimmedValue === "" && input.value.includes("\n"))) {
+
+					console.log("送信されたメッセージ:", trimmedValue); // 送信内容を表示（デバッグ用）
+
+					socket.emit('chat message', {
+						text: input.value,
+						name: chatName.value
+					});
+					
+					input.value = ""; // 入力欄をクリア
+					input.style.height = "39px"; // 初期の高さに戻す
+					input.style.borderRadius = "2rem"; // 初期値に戻す
+					input.blur(); // フォーカスを外す（スマホならキーボードを閉じる）
+					emojiButton.style.top = "9px"; // 初期の高さに戻す
+					emojiButton.style.transform = "none"; // 初期値に戻す
+					messages.style.marginBottom = "23px"; // 初期に戻す
+					
+					// 送信ボタンの色をリセット
+					sendImg.style.filter = 
+					"invert(22%) sepia(16%) saturate(4%) hue-rotate(315deg) brightness(102%) contrast(81%)";
+					
+					// PCならフォーカスを戻す（スマホでは戻さない）
+					if (!isMobile()) {
+						setTimeout(() => input.focus(), 100);
+					}
+				}
+				//  下記は同じ条件式のもう一つの方法。どっちが分かりすいか悩ましい。
+				// if (trimmedValue && input.value.replace(/\n/g, "").trim() !== "")
+			});
+			
+			// 新しいメッセージがきた時の処理
+			socket.on('chat message', function(msg) {
+				// 投稿時間を取得する
+				let postTime = new Date().toLocaleString("en-US",{
+					timeZone: "Asia/Tokyo",
+					hour: "numeric",
+					minute: "numeric",
+					hour12: true
+				}); // 英語圏のロケール（例: en-US）を使いタイムゾーンで日本を明示的に指定
+				let item = document.createElement('li');
+				item.innerHTML = `
+					<span class="msg-icon"><img src="/icon/profile_sample_image-300x300.jpg"></span>
+					<div class="msg-contents">
+						<time>${postTime}</time>
+						<span class="msg-name">${msg.name}</span>
+						<span class="msg-text">${msg.text}</span>
+					</div>
+				`;
+				messages.appendChild(item);
+				messages.scrollTo(0, messages.scrollHeight); // messages内のスクロールを一番下へ
+				//window.scrollTo(0, document.body.scrollHeight);
+			});
+		</script>
+	</body>
+</html>

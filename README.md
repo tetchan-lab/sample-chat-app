@@ -27,4 +27,10 @@ node index.js
 - ブラウザで http://localhost:3000 にアクセス
 ### 5️⃣ .env について
 - 現時点では `.env` は不要 ですが、今後使う予定があるため `dotenv` をインストール済みです。
-- `.env` を利用する場合は、プロジェクトのルートに `.env` ファイルを作成してください。
+- もし `.env` を使う場合は、プロジェクトルートに `.env` を作成し、以下のように記述してください。
+```sh
+PORT=3000 DB_HOST=localhost DB_USER=root DB_PASS=yourpassword
+```
+## 📝 ライセンス
+このプロジェクトは [ISCライセンス](https://opensource.org/licenses/ISC) のもとで公開されています。  
+ISCライセンスは、MITライセンスに似たシンプルなライセンスで、商用・非商用問わず自由に利用できます。

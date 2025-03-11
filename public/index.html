@@ -259,18 +259,22 @@
 		</form>
 		<script src="/socket.io/socket.io.js"></script>
 		<script>
-            // ページ読み込み時に CSRF トークンを取得
-            (async function(){
-                try {
-                    const res = await fetch('/csrf-token');
-                    const data = await res.json();
-                    document.getElementById('csrf-token').value = data.csrfToken;
-                    console.log("CSRF Token retrieved:", data.csrfToken);
-                } catch (error) {
-                    console.error("Failed to retrieve CSRF Token:", error);
-                }
-            })();
+			window.onload = async function () {
+				try {
+					await updateCsrfToken(); // HTMLの読み込み完了後にCSRFトークンを取得
+				} catch (error) {
+					console.error("Failed to retrieve CSRF Token:", error);
+				}
+			};
 
+			// CSRFトークンを取得してフォームにセットする関数
+			async function updateCsrfToken() {
+				const res = await fetch('/csrf-token');
+				const data = await res.json();
+				document.getElementById('csrf-token').value = data.csrfToken;
+				console.log("✅ New CSRF Token retrieved:", data.csrfToken); // (デバッグ用)
+			}
+			
 			let socket = io();
 			const messages = document.getElementById('messages');
 			const chatName = document.getElementById('chat-name');
@@ -371,7 +375,7 @@
 				const twoHeight = 49; // 2行分の高さ
 				let newHeight = input.scrollHeight; // 現在の高さ
 				
-				console.log("現在の高さ:", newHeight); // 現在の高さを確認（デバッグ用）
+				//console.log("現在の高さ:", newHeight); // 現在の高さを確認（デバッグ用）
 				//console.log("２行分の高さ:", twoHeight); // ２行分の高さを確認（デバッグ用）
 				
 				// textarea のスタイルを取得してフォント情報を取得
@@ -380,7 +384,7 @@
 				
 				// 現在の入力テキストの幅を計算
 				const TextWidth = getTextWidth(input.value, font); // 現在の入力テキストをgetTextWidth() に渡す
-				console.log("Text Width:", TextWidth); // デバッグ用
+				//console.log("Text Width:", TextWidth); // デバッグ用
 				
 				// textarea の padding を取得
 				const paddingLeft = parseFloat(textareaStyle.paddingLeft);
@@ -390,11 +394,11 @@
 				
 				// テキスト幅にpadding分と余力分の数字を加える
 				const adjustedTextWidth = TextWidth + textPadding + margin;
-				console.log("Adjusted Text Width:", adjustedTextWidth); // デバッグ用
+				//console.log("Adjusted Text Width:", adjustedTextWidth); // デバッグ用
 				
 				// emojiボタンの左側の位置を取得
 				const emojiButtonLeft = emojiButton.getBoundingClientRect().left;
-				console.log("emojiButton Left: ", emojiButtonLeft); // デバッグ用
+				//console.log("emojiButton Left: ", emojiButtonLeft); // デバッグ用
 				
 				// PCかスマホか判定して、個別の条件で処理をさせる。スマホならemojiボタンの位置を考慮しない 
 				/*if (isMobile()) {
@@ -492,26 +496,30 @@
 				
 				if (trimmedValue && !(trimmedValue === "" && input.value.includes("\n"))) {
 
-                    try {
-                        const formData = new FormData(form);
-                        const message = formData.get("_message");
-                        const csrfToken = formData.get("_csrf");
+					try {
+						const formData = new FormData(form);
+						const message = formData.get("_message");
+						const csrfToken = formData.get("_csrf");
 
-                        // サーバーへPOSTリクエストを送信（CSRFトークンをヘッダーに含める）
-                        const response = await fetch('/submit', {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "CSRF-Token": csrfToken  // ヘッダーにトークンを設定
-                            },
-                            body: JSON.stringify({ message })
-                        });
+						// サーバーへPOSTリクエストを送信（CSRFトークンをヘッダーに含める）
+						const response = await fetch('/submit', {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+								"CSRF-Token": csrfToken  // ヘッダーにトークンを設定
+							},
+							body: JSON.stringify({ message })
+						});
 
-                        const result = await response.json();
-                        console.log("Server response:", result);
-                    } catch (error) {
-                        console.error("Error during form submission:", error);
-                    }
+						const result = await response.json();
+						console.log("Server response:", result);
+
+						// 送信後に新しい CSRF トークンを取得
+						await updateCsrfToken();
+
+					} catch (error) {
+						console.error("Error during form submission:", error);
+					}
 
 					console.log("送信されたメッセージ:", trimmedValue); // 送信内容を表示（デバッグ用）
 

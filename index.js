@@ -7,12 +7,23 @@ const path = require('path');
 const cookieParser = require("cookie-parser");
 const csrf = require("csurf");
 
+console.log("🔍 NODE_ENV:", process.env.NODE_ENV); // Renderのデフォルトの.envを確認
 
 app.use(cookieParser()); // Cookie を扱うためのミドルウェア
 app.use(express.urlencoded({ extended: true })); // フォームデータを解析するため
 app.use(express.json()); // JSONデータを解析するため
 
-const csrfProtection = csrf({ cookie: true }); // CSRF保護のミドルウェアを設定（クッキーベース）
+// CSRF保護のミドルウェアを設定（クッキーベース）
+const csrfProtection = csrf({
+    cookie: {
+        key: "XSRF-TOKEN",
+        httpOnly: true, // JavaScript からのアクセスを禁止（XSS対策）
+        secure: process.env.NODE_ENV === 'production', // 本番環境では true、開発環境では false
+        sameSite: "Strict" // もしくは 'lax' を利用
+    }
+});
+
+app.use(csrfProtection); // CSRF ミドルウェアを全ルートに適用
 
 // public フォルダを静的ファイルとして提供
 app.use(express.static(path.join(__dirname, 'public')));
@@ -39,17 +50,20 @@ app.use((req, res, next) => {
 });
 */
 
-// CSRF トークンを発行するエンドポイント
-app.get("/csrf-token", csrfProtection, (req, res) => {
+// CSRFトークンを発行するエンドポイント
+app.get("/csrf-token", (req, res) => {
+    //console.log("🔍 CSRF トークンのリクエストが来た！"); // （デバッグ用）
+    const token = req.csrfToken();
+    //console.log("✅ 発行した CSRF トークン:", token); // (デバッグ用)
     res.json({ csrfToken: req.csrfToken() });
 });
 
-// ルートへのGETリクエストで、CSRFトークンを生成し、index.htmlを返す
-app.get('/', csrfProtection, (req, res) => {
+// ルートへのGETリクエスト
+app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// CSRF トークン付きの POST エンドポイント
+// CSRFトークン付きのPOSTエンドポイント
 app.post("/submit", csrfProtection, (req, res) => {
     // CSRFトークンの検証が自動的に行われる
     const data = req.body; // フォームのデータを取得

@@ -173,7 +173,7 @@
 			}
 			li > span > img {
 				width: auto;
-				height: 24px;
+				height: 26px;
 				border-radius: 100%;
 				/*margin: -20px 7px -8px 7px;*/
 			}
@@ -182,8 +182,8 @@
 				right: 12px;
 				bottom: 12px;*/
 				font-size: 0.7rem;
-				color: #707070;
-				padding-right: 10px;
+				color: #a8a8a8;
+				padding-right: 6px;
 				/* display: none; */
 			}
 			.msg-icon {
@@ -193,11 +193,11 @@
 			}
 			.msg-name {
 				font-size: 12px;
-				font-weight: bold;
+				/*font-weight: bold;*/
 				color: #797979;
 				color: #146512;
 				color: #027523;
-				padding-right: 10px;
+				padding-right: 2px;
 			}
 			.msg-text {
 				font-size: 13px;
@@ -215,20 +215,20 @@
 					bottom: 44px;
 				}*/
 				li > span > img {
-					height: 24px;
+					height: 26px;
 				}
 				#messages > li time {
-                    padding-right: 0px;
+                    padding-right: 3px;
 					/*display: none;*/
 				}
 				.msg-icon {
 					height: 21px;
-					padding: 0px 6px 0px 0px;
-					margin-top: -1px;
+					padding: 0px 10px 0px 0px;
+					margin-top: -2px;
 				}
 				.msg-name {
 					font-size: 12px;
-					padding-right: 0px;
+					padding-right: 2px;
 				}
 				.msg-text {
 					font-size: 13px;
@@ -246,7 +246,7 @@
 	<body>
 		<ul id="messages"></ul>
 		<form id="chatForm" action="/submit" method="POST">
-			<input id="chat-name" value="Sample:">
+			<input id="chat-name" value="sampleサンプル:">
 			<div id="wrapper" class="wrapper">
 				<textarea id="input" name="_message" placeholder="チャット..." autocomplete="off"></textarea>
                 <input type="hidden" name="_csrf" id="csrf-token">

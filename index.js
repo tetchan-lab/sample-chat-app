@@ -7,8 +7,6 @@ const path = require('path');
 const cookieParser = require("cookie-parser");
 const csrf = require("csurf");
 
-console.log("🔍 NODE_ENV:", process.env.NODE_ENV); // Renderのデフォルトの.envを確認
-
 app.use(cookieParser()); // Cookie を扱うためのミドルウェア
 app.use(express.urlencoded({ extended: true })); // フォームデータを解析するため
 app.use(express.json()); // JSONデータを解析するため

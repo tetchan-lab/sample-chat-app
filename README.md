@@ -1,5 +1,7 @@
 # Realtime Chat App - sample
-このプロジェクトは **Node.js + Express + Socket.IO** を使ったリアルタイムチャットアプリのサンプルコードです。CSRF対策のためトークンの発行と検証に`csurf`と`cookie-parser`を使っています。
+このプロジェクトは **Node.js + Express + Socket.IO** を使ったリアルタイムチャットアプリのサンプルコードです。
+- CSRF対策のためトークンの発行と検証に`csurf`と`cookie-parser`を使っています。
+- エスケープ＆バリデーションに`express-validator` を使っています。
 
 ## 📌 必要な環境
 - **Node.js** (推奨バージョン: `18.x.x` 以上)

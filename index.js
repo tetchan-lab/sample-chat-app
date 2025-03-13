@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const { body, validationResult } = require('express-validator');
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const port = process.env.PORT || 3000;
@@ -62,13 +63,35 @@ app.get('/', (req, res) => {
 });
 
 // CSRFトークン付きのPOSTエンドポイント
-app.post("/submit", csrfProtection, (req, res) => {
-    // CSRFトークンの検証が自動的に行われる
-    const data = req.body; // フォームのデータを取得
-    console.log('Received data:', data);
-    
-    // ここでデータベース操作などの処理を行う
-    res.json({ success: true, message: 'データを受け取りました！', data });
+app.post("/submit", 
+    [
+        // ① 名前フィールド (`_name`) のバリデーション
+        body("name")
+            .trim() // 前後の空白を削除
+            .escape() // 特殊文字をエスケープ（例: <script> → `&lt;script&gt;`）
+            .notEmpty().withMessage("名前を入力してください"), // 空欄を許可しない
+
+        // ② メッセージフィールド (`_message`) のバリデーション
+        body("message")
+            .trim()
+            .escape()
+            .notEmpty().withMessage("メッセージを入力してください")
+    ],
+    csrfProtection,
+    (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            console.log("❌ バリデーションエラー:", errors.array());
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const name = req.body.name;
+        const message = req.body.message;
+        console.log("✅ 受信データ（バリデーション済み）:", { name, message });
+
+        // ここでデータベース操作などの処理を行う
+
+        res.json({ success: true, message: "データを受け取りました！", data: { name, message } });
 });
 
 // Socket.IO の設定

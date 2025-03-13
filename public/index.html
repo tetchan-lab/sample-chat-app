@@ -247,7 +247,7 @@
 	<body>
 		<ul id="messages"></ul>
 		<form id="chatForm" action="/submit" method="POST">
-			<input id="chat-name" value="sampleサンプル:">
+			<input id="chat-name" name="_name" value="sampleサンプル:">
 			<div id="wrapper" class="wrapper">
 				<textarea id="input" name="_message" placeholder="チャット..." autocomplete="off"></textarea>
                 <input type="hidden" name="_csrf" id="csrf-token">
@@ -499,8 +499,10 @@
 
 					try {
 						const formData = new FormData(form);
+						const name = formData.get("_name");
 						const message = formData.get("_message");
 						const csrfToken = formData.get("_csrf");
+						//console.log("📝 送信データ:", { name, message }); (デバッグ用)
 
 						// サーバーへPOSTリクエストを送信（CSRFトークンをヘッダーに含める）
 						const response = await fetch('/submit', {
@@ -509,11 +511,11 @@
 								"Content-Type": "application/json",
 								"CSRF-Token": csrfToken  // ヘッダーにトークンを設定
 							},
-							body: JSON.stringify({ message })
+							body: JSON.stringify({ name, message })
 						});
 
 						const result = await response.json();
-						console.log("Server response:", result);
+						console.log("📝 Server response:", result);
 
 						// 送信後に新しい CSRF トークンを取得
 						await updateCsrfToken();
